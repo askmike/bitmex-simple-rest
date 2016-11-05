@@ -1,0 +1,24 @@
+{
+  "name": "bitmex-simple-rest",
+  "version": "0.0.1",
+  "description": "simple rest API wrapper for bitmex",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/askmike/bitmex-simple-rest.git"
+  },
+  "keywords": [
+    "bitmex",
+    "api",
+    "wrapper"
+  ],
+  "author": "Mike van Rossum <mike@mvr.me>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/askmike/bitmex-simple-rest/issues"
+  },
+  "homepage": "https://github.com/askmike/bitmex-simple-rest#readme"
+}
