@@ -1,138 +1,137 @@
-var querystring = require("querystring");
-var https = require('https');
-var crypto = require('crypto');
+const crypto = require('crypto');
+const https = require('https');
+const querystring = require('querystring');
 
-var _ = require('lodash');
+const version = require('./package.json').version;
+const name = require('./package.json').name;
 
-_.mixin({
-  // compact for objects
-  compactObject: function(to_clean) {
-    _.map(to_clean, function(value, key, to_clean) {
-      if (value === undefined)
-        delete to_clean[key];
-    });
-    return to_clean;
-  }
-});  
+const USER_AGENT = `${name}@${version}`;
 
-var Bitmex = function(key, secret, client_id) {
-  this.key = key;
-  this.secret = secret;
-  this.client_id = client_id;
+class BitmexRest {
+  constructor(config) {
+    this.ua = USER_AGENT;
+    this.timeout = 90 * 1000;
+    this.expiration = 60 * 1000;
 
-  _.bindAll(this);
-}
-
-Bitmex.prototype._request = function(method, path, data, args, callback) {
-  var options = {
-    host: 'www.bitmex.com',
-    path: path,
-    method: method,
-    headers: {
-      'User-Agent': 'Mozilla/4.0 (compatible; Bitme node.js client)',
-      Accept: 'application/json',
-      'X-Requested-With': 'XMLHttpRequest'
+    if(!config) {
+      return;
     }
-  };
 
-  // if(method === 'post') {
-  //   options.headers['Content-Length'] = data.length;
-  //   options.headers['content-type'] = 'application/x-www-form-urlencoded';
-  // }
+    if(config.key && config.secret) {
+      this.key = config.key;
+      this.secret = config.secret;
+    }
 
-  var req = https.request(options, function(res) {
-    res.setEncoding('utf8');
-    var buffer = '';
-    res.on('data', function(data) {
-      buffer += data;
-    });
-    res.on('end', function() {
-      if (res.statusCode !== 200) {
-        return callback(new Error('Bitmex error ' + res.statusCode + ': ' + buffer));
+    if(config.timeout) {
+      this.timeout = config.timeout;
+    }
+
+    if(config.expiration) {
+      this.expiration = config.expiration;
+    }
+
+    if(config.userAgent) {
+      this.ua += ' | ' + config.userAgent;
+    }
+  }
+
+
+  // most code is from:
+  // https://github.com/BitMEX/api-connectors/blob/81874dc618f953fd054f2a249f5d03fda3e48093/official-http/node-request/
+  request({path, method, data, expiration, timeout}) {
+    return new Promise((resolve, reject) => {
+      if(!expiration) {
+        expiration = this.expiration;
       }
-      try {
-        var json = JSON.parse(buffer);
-      } catch (err) {
-        return callback(err);
+
+      if(!timeout) {
+        timeout = this.timeout;
       }
-      callback(null, json);
+
+      path = '/api/v1' + path;
+
+      let payload = '';
+      if(method === 'POST') {
+        payload = JSON.stringify(data);
+      } else {
+        path += '?' + querystring.stringify(data);
+      }
+
+      const start = +new Date;
+      const expires = start + expiration;
+
+      const signature = crypto.createHmac('sha256', this.secret)
+        .update(method + path + expires + payload).digest('hex');
+
+      const options = {
+        host: 'www.bitmex.com',
+        path,
+        method,
+        headers: {
+          'User-Agent': this.ua,
+          'content-type' : 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'api-expires': expires,
+          'api-key': this.key,
+          'api-signature': signature
+        }
+      };
+
+      const req = https.request(options, res => {
+        res.setEncoding('utf8');
+        let buffer = '';
+        res.on('data', function(data) {
+          buffer += data;
+        });
+        res.on('end', function() {
+
+          if (res.statusCode !== 200) {
+            // todo: if rate limit pass retryAfter info
+
+            let message;
+
+            try {
+              message = JSON.parse(buffer).error.message;
+            } catch(e) {
+              message = buffer;
+            }
+
+            return reject(new Error(`[Bitmex] ${res.statusCode}: ${message}`));
+          }
+
+          let data;
+          try {
+            data = JSON.parse(buffer);
+          } catch (err) {
+            return reject(new Error('Bitmex did not send json, but: ' + buffer));
+          }
+          resolve({
+            data,
+            headers: res.headers
+          });
+        });
+      });
+
+      req.on('error', err => {
+        reject(err);
+      });
+
+      req.on('socket', socket => {
+        socket.setTimeout(timeout);
+        socket.on('timeout', function() {
+          req.abort();
+        });
+      });
+
+      if(method === 'GET') {
+        req.end();
+      } else {
+        req.end(payload);
+      }
     });
-  });
+  }
 
-  req.on('error', function(err) {
-    callback(err);
-  });
+};
 
-  req.on('socket', function (socket) {
-    socket.setTimeout(5000);
-    socket.on('timeout', function() {
-      req.abort();
-    });
-    socket.on('error', function(err) {
-      callback(err);
-    });
-  });
-  
-  req.end(data);
-
-}
-
-Bitmex.prototype._get = function(symbol, action, args, callback) {
-  args = _.compactObject(args);
-  args.symbol = symbol;
-
-  var path = '/api/v1/' + action;
-
-  var qs = querystring.stringify(args);
-  path += (qs === '' ? '/' : '/?') + qs;
-
-  this._request('get', path, undefined, args, callback)
-}
-
-// Bitmex.prototype._post = function(market, action, callback, args, legacy_endpoint) {
-//   if(!this.key || !this.secret || !this.client_id)
-//     return callback(new Error('Must provide key, secret and client ID to make this API request.'));
-
-//   if(legacy_endpoint)
-//     var path = '/api/' + action + '/';
-//   else {
-//     if(market)
-//       var path = '/api/v2/' + action + '/' + market + '/';
-//     else
-//       var path = '/api/v2/' + action + '/';
-//   }
-
-//   var nonce = this._generateNonce();
-//   var message = nonce + this.client_id + this.key;
-//   var signer = crypto.createHmac('sha256', new Buffer(this.secret, 'utf8'));
-//   var signature = signer.update(message).digest('hex').toUpperCase();
-
-//   args = _.extend({
-//     key: this.key,
-//     signature: signature,
-//     nonce: nonce
-//   }, args);
-
-//   args = _.compactObject(args);
-//   var data = querystring.stringify(args);
-
-//   this._request('post', path, data, callback, args);
-// }
-
-// 
-// Public API
-// 
-
-Bitmex.prototype.trade = function(symbol, options, callback) {
-  this._get(symbol, 'trade', options || {}, callback);
-}
-
-
-// 
-// Private API
-// (you need to have key / secret / client ID set)
-// 
-
-
-
-module.exports = Bitmex;
+module.exports = BitmexRest;
