@@ -90,30 +90,23 @@ class BitmexRest {
 
           if (res.statusCode !== 200) {
             let message;
-            let resp;
+            let data;
 
             try {
-              resp = JSON.parse(buffer);
-              message = resp.error.message;
+              data = JSON.parse(buffer);
+              message = data.error.message;
             } catch(e) {
               message = buffer;
             }
 
-            return reject(new BitmexError(res.statusCode + ': ' + message, {
-              statusCode: res.statusCode,
-              headers: res.headers,
-              data: resp
-            }));
+            return reject(new BitmexError(res.statusCode + ': ' + message, res, data));
           }
 
           let data;
           try {
             data = JSON.parse(buffer);
           } catch (err) {
-            return reject(new BitmexError(buffer, {
-              statusCode: res.statusCode,
-              headers: res.headers
-            }));
+            return reject(new BitmexError(buffer, res));
           }
 
           resolve({
