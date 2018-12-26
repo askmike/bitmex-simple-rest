@@ -5,6 +5,8 @@ const querystring = require('querystring');
 const version = require('./package.json').version;
 const name = require('./package.json').name;
 
+const BitmexError = require('./bitmexError');
+
 const USER_AGENT = `${name}@${version}`;
 
 class BitmexRest {
@@ -87,25 +89,33 @@ class BitmexRest {
         res.on('end', function() {
 
           if (res.statusCode !== 200) {
-            // todo: if rate limit pass retryAfter info
-
             let message;
+            let resp;
 
             try {
-              message = JSON.parse(buffer).error.message;
+              resp = JSON.parse(buffer);
+              message = resp.error.message;
             } catch(e) {
               message = buffer;
             }
 
-            return reject(new Error(`[Bitmex] ${res.statusCode}: ${message}`));
+            return reject(new BitmexError(res.statusCode + ': ' + message, {
+              statusCode: res.statusCode,
+              headers: res.headers,
+              data: resp
+            }));
           }
 
           let data;
           try {
             data = JSON.parse(buffer);
           } catch (err) {
-            return reject(new Error('Bitmex did not send json, but: ' + buffer));
+            return reject(new BitmexError(buffer, {
+              statusCode: res.statusCode,
+              headers: res.headers
+            }));
           }
+
           resolve({
             data,
             headers: res.headers
