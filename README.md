@@ -6,7 +6,10 @@ A basic API wrapper for the [Bitmex REST API](https://www.bitmex.com/api/explore
 
 This is a low level wrapper with zero dependencies focussed on:
 
-- Speed (keeps things simple, no complex request libraries that introduce overhead)
+- Speed
+  - Uses keep-alive
+  - No complex code
+  - No third party libraries
 - Userland control
   - Passes on response headers such as information on your [rate limit quota](https://www.bitmex.com/app/restAPI#Request-Rate-Limits))
   - Allows you to specity timeout & expiration date per call

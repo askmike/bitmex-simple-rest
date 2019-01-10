@@ -15,6 +15,13 @@ class BitmexRest {
     this.timeout = 90 * 1000;
     this.expiration = 60 * 1000;
 
+    // keep-alive
+    this.agent = new https.Agent({
+      keepAlive: true,
+      timeout: 90 * 1000,
+      keepAliveMsecs: false
+    });
+
     if(!config) {
       return;
     }
@@ -69,6 +76,7 @@ class BitmexRest {
         host: 'www.bitmex.com',
         path,
         method,
+        agent: this.agent,
         headers: {
           'User-Agent': this.ua,
           'content-type' : 'application/json',
@@ -121,10 +129,12 @@ class BitmexRest {
       });
 
       req.on('socket', socket => {
-        socket.setTimeout(timeout);
-        socket.on('timeout', function() {
-          req.abort();
-        });
+        if(socket.connecting) {
+          socket.setTimeout(timeout);
+          socket.on('timeout', function() {
+            req.abort();
+          });
+        }
       });
 
       if(method === 'GET') {
@@ -134,7 +144,6 @@ class BitmexRest {
       }
     });
   }
-
 };
 
 module.exports = BitmexRest;
