@@ -47,6 +47,7 @@ class BitmexRest {
 
   // most code is from:
   // https://github.com/BitMEX/api-connectors/blob/81874dc618f953fd054f2a249f5d03fda3e48093/official-http/node-request/
+  // includes this fix: https://github.com/BitMEX/api-connectors/pull/308
   request({path, method, data, expiration, timeout}) {
     return new Promise((resolve, reject) => {
       if(!expiration) {
@@ -67,7 +68,7 @@ class BitmexRest {
       }
 
       const start = +new Date;
-      const expires = start + expiration;
+      const expires = Math.round((start + expiration) / 1000);
 
       const signature = crypto.createHmac('sha256', this.secret)
         .update(method + path + expires + payload).digest('hex');
