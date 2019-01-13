@@ -19,7 +19,7 @@ class BitmexRest {
     this.agent = new https.Agent({
       keepAlive: true,
       timeout: 90 * 1000,
-      keepAliveMsecs: false
+      keepAliveMsecs: 1000 * 60
     });
 
     if(!config) {
@@ -96,7 +96,7 @@ class BitmexRest {
         });
         res.on('end', function() {
 
-          if (res.statusCode !== 200) {
+          if (res.statusCode >= 300) {
             let message;
             let data;
 
@@ -107,7 +107,7 @@ class BitmexRest {
               message = buffer;
             }
 
-            return reject(new BitmexError(res.statusCode + ': ' + message, res, data));
+            return reject(new BitmexError(message, res, data));
           }
 
           let data;
@@ -130,6 +130,7 @@ class BitmexRest {
 
       req.on('socket', socket => {
         if(socket.connecting) {
+          socket.setNoDelay(true);
           socket.setTimeout(timeout);
           socket.on('timeout', function() {
             req.abort();
