@@ -8,6 +8,7 @@ This is a low level wrapper with zero dependencies focussed on:
 
 - Speed
   - Uses keep-alive
+  - Disables Nagle's algorithm
   - No complex code
   - No third party libraries
 - Userland control
