@@ -43,7 +43,9 @@ Used by my low latency market maker that's running in production. I don't think 
 
 ### Low latency usage
 
-Sending an API request to Bitmex requires hashing the payload with your API key. **In nodejs, this process takes more than a millisecond** (on the non compute optimzied AWS boxes I tested this on). This library allows you to prepare an API request draft before hand (doing all the heavy work). The microsecond you realize you actually want to send it you simply send the draft you created previously:
+Sending an API request to Bitmex requires hashing the payload with your API key. **In nodejs, this process can easily take 0.15 millisecond** (on the non compute optimized AWS boxes I tested this on - because yes, you should run on AWS-EU-1 if you want to trade fast on Bitmex). You can test the speed of creating API requests yourself on your system by running `benchmark.js`, preferably with real keys and and a request similar to what your system might send.
+
+This library allows you to prepare an API request draft before hand (doing all the heavy work). The microsecond you realize you actually want to send it you simply send the draft you created previously:
 
     // create the draft before hand
     const draft = bm.createDraft({
@@ -55,7 +57,7 @@ Sending an API request to Bitmex requires hashing the payload with your API key.
     // later when you actually want to send
     const { data, headers } = await bm.requestDraft(draft);
 
-Note that this only works in scenarios where you know (or can estimate) what will happen or which scenarios might happen: You can create drafts for all of them and only end up sending one later.
+Note that this only works in scenarios where you can estimate what will happen or which scenarios might happen: You can create drafts for all of them and only end up sending one later.
 
 ## TODO
 
