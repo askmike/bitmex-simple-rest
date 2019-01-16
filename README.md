@@ -11,6 +11,7 @@ This is a low level wrapper with zero dependencies focussed on:
   - Disables Nagle's algorithm
   - No complex code
   - No third party libraries
+  - allows you to pre compile your message (see below under low latency usage)
 - Userland control
   - Passes on response headers such as information on your [rate limit quota](https://www.bitmex.com/app/restAPI#Request-Rate-Limits)
   - Allows you to specity timeout & expiration date per call
@@ -39,6 +40,27 @@ Used by my low latency market maker that's running in production. I don't think 
       method: 'GET',
       data: { currency: 'XBt' }
     });
+
+### Low latency usage
+
+Sending an API request to Bitmex requires hashing the payload with your API key. **In nodejs, this process takes more than a millisecond** (on the non compute optimzied AWS boxes I tested this on). This library allows you to prepare an API request draft before hand (doing all the heavy work). The microsecond you realize you actually want to send it you simply send the draft you created previously:
+
+    // create the draft before hand
+    const draft = bm.createDraft({
+      path: '/user/margin',
+      method: 'GET',
+      data: { currency: 'XBt' }
+    });
+
+    // later when you actually want to send
+    const { data, headers } = await bm.requestDraft(draft);
+
+Note that this only works in scenarios where you know (or can estimate) what will happen or which scenarios might happen: You can create drafts for all of them and only end up sending one later.
+
+## TODO
+
+- Figure out if we can reliably skip the `end` event of the packetstream (see requestDraft comment).
+- String compare for common errors (overload), skipping `JSON.parse`.
 
 ## Final
 

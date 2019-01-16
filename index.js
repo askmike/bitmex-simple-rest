@@ -22,6 +22,8 @@ class BitmexRest {
       keepAliveMsecs: 1000 * 60
     });
 
+    this.drafts = {};
+
     if(!config) {
       return;
     }
@@ -44,59 +46,72 @@ class BitmexRest {
     }
   }
 
-
   // most code is from:
   // https://github.com/BitMEX/api-connectors/blob/81874dc618f953fd054f2a249f5d03fda3e48093/official-http/node-request/
   // includes this fix: https://github.com/BitMEX/api-connectors/pull/308
-  request({path, method, data, expiration, timeout}) {
+
+  // this fn can easily take more than 1ms due to heavy crypto functions
+  // if your application is _very_ latency sensitive prepare the drafts
+  // before you realize you want to send them.
+  createDraft({path, method, data, expiration, timeout}) {
+    if(!expiration) {
+      expiration = this.expiration;
+    }
+
+    if(!timeout) {
+      timeout = this.timeout;
+    }
+
+    path = '/api/v1' + path;
+
+    let payload = '';
+    if(method === 'POST') {
+      payload = JSON.stringify(data);
+    } else {
+      path += '?' + querystring.stringify(data);
+    }
+
+    const start = +new Date;
+    const expires = Math.round((start + expiration) / 1000);
+
+    const signature = crypto.createHmac('sha256', this.secret)
+      .update(method + path + expires + payload).digest('hex');
+
+    const options = {
+      host: 'www.bitmex.com',
+      path,
+      method,
+      agent: this.agent,
+      headers: {
+        'User-Agent': this.ua,
+        'content-type' : 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'api-expires': expires,
+        'api-key': this.key,
+        'api-signature': signature
+      },
+      // merely passed through for requestDraft
+      timeout,
+    };
+
+    return options;
+  }
+
+  // a draft is an option object created (potentially previously) with createDraft
+  requestDraft(draft) {
     return new Promise((resolve, reject) => {
-      if(!expiration) {
-        expiration = this.expiration;
-      }
-
-      if(!timeout) {
-        timeout = this.timeout;
-      }
-
-      path = '/api/v1' + path;
-
-      let payload = '';
-      if(method === 'POST') {
-        payload = JSON.stringify(data);
-      } else {
-        path += '?' + querystring.stringify(data);
-      }
-
-      const start = +new Date;
-      const expires = Math.round((start + expiration) / 1000);
-
-      const signature = crypto.createHmac('sha256', this.secret)
-        .update(method + path + expires + payload).digest('hex');
-
-      const options = {
-        host: 'www.bitmex.com',
-        path,
-        method,
-        agent: this.agent,
-        headers: {
-          'User-Agent': this.ua,
-          'content-type' : 'application/json',
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'api-expires': expires,
-          'api-key': this.key,
-          'api-signature': signature
-        }
-      };
-
-      const req = https.request(options, res => {
+      const req = https.request(draft, res => {
         res.setEncoding('utf8');
         let buffer = '';
         res.on('data', function(data) {
+          // TODO: we receive this event up to ~0.6ms before the end
+          // event, though if this is valid json & doesn't contain
+          // an error we can return from here, since we dont care
+          // about status code.
           buffer += data;
         });
         res.on('end', function() {
-
           if (res.statusCode >= 300) {
             let message;
             let data;
@@ -132,19 +147,24 @@ class BitmexRest {
       req.on('socket', socket => {
         if(socket.connecting) {
           socket.setNoDelay(true);
-          socket.setTimeout(timeout);
+          socket.setTimeout(draft.timeout);
           socket.on('timeout', function() {
             req.abort();
           });
         }
       });
 
-      if(method === 'GET') {
+      if(draft.method === 'GET') {
         req.end();
       } else {
         req.end(payload);
       }
     });
+  }
+
+  // props: {path, method, data, expiration, timeout}
+  request(props) {
+    return this.requestDraft(this.createDraft(props));
   }
 };
 
