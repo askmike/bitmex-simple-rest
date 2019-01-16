@@ -2,7 +2,7 @@
 
     npm install bitmex-simple-rest
 
-A basic API wrapper for the [Bitmex REST API](https://www.bitmex.com/api/explorer/). Please refer to [their documentation](https://www.bitmex.com/api/explorer/) for all calls explained. Check out `example.js` for a list of all possible calls and their parameters.
+API wrapper for the [Bitmex REST API](https://www.bitmex.com/api/explorer/). Please refer to [their documentation](https://www.bitmex.com/api/explorer/) for all calls explained. Check out `sample.js` for some example calls.
 
 This is a low level wrapper with zero dependencies focussed on:
 
@@ -12,10 +12,10 @@ This is a low level wrapper with zero dependencies focussed on:
   - No complex code
   - No third party libraries
 - Userland control
-  - Passes on response headers such as information on your [rate limit quota](https://www.bitmex.com/app/restAPI#Request-Rate-Limits))
+  - Passes on response headers such as information on your [rate limit quota](https://www.bitmex.com/app/restAPI#Request-Rate-Limits)
   - Allows you to specity timeout & expiration date per call
 
-In development, but used by my market maker that's running in production.
+Used by my low latency market maker that's running in production. I don't think you can go much faster in nodejs without rewriting [Node.js' core http library](https://nodejs.org/api/http.html#http_http_request_options_callback) (if you think you can, feel free to open an issue or propose a PR).
 
 ## Usage
 
@@ -39,3 +39,7 @@ In development, but used by my market maker that's running in production.
       method: 'GET',
       data: { currency: 'XBt' }
     });
+
+## Final
+
+If this library is helping you trade better on Bitmex feel free to use [my ref link](https://www.bitmex.com/register/VDPANj). You'll get a 10% fee discount for the first 6 months, lowering your market fees (on the perpetual swap) from 0.075% to a mere 0.0675%!
