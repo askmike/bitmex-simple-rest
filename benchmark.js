@@ -18,12 +18,12 @@ const test = () => {
     path: '/order', 
     data: {
       symbol: 'XBTUSD',
-      orderQty: 100,
+      orderQty: 100 + i,
       side: 'Sell',
       ordType: 'Limit',
-      price: 10000,
+      price: 10000 - i,
       execInst: 'ParticipateDoNotInitiate',
-      clOrdID: 'moon-1'
+      clOrdID: 'moon-' + i
     }
   });
   console.log('drafting took', (now() - start).toFixed(5), 'ms');

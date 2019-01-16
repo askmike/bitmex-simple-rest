@@ -22,8 +22,6 @@ class BitmexRest {
       keepAliveMsecs: 1000 * 60
     });
 
-    this.drafts = {};
-
     if(!config) {
       return;
     }
@@ -50,7 +48,7 @@ class BitmexRest {
   // https://github.com/BitMEX/api-connectors/blob/81874dc618f953fd054f2a249f5d03fda3e48093/official-http/node-request/
   // includes this fix: https://github.com/BitMEX/api-connectors/pull/308
 
-  // this fn can easily take more than 1ms due to heavy crypto functions
+  // this fn can easily take more than 0.15ms due to heavy crypto functions
   // if your application is _very_ latency sensitive prepare the drafts
   // before you realize you want to send them.
   createDraft({path, method, data, expiration, timeout}) {
