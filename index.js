@@ -65,7 +65,7 @@ class BitmexRest {
     let payload = '';
     if(method === 'GET') {
       path += '?' + querystring.stringify(data);
-    } else {
+    } else if(data) {
       payload = JSON.stringify(data);
     }
 
