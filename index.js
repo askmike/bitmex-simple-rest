@@ -63,7 +63,7 @@ class BitmexRest {
     path = '/api/v1' + path;
 
     let payload = '';
-    if(method === 'POST') {
+    if(method === 'POST' || method === 'PUT') {
       payload = JSON.stringify(data);
     } else {
       path += '?' + querystring.stringify(data);
