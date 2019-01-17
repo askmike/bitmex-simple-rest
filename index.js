@@ -91,6 +91,7 @@ class BitmexRest {
       },
       // merely passed through for requestDraft
       timeout,
+      payload
     };
 
     return options;
@@ -155,7 +156,7 @@ class BitmexRest {
       if(draft.method === 'GET') {
         req.end();
       } else {
-        req.end(payload);
+        req.end(draft.payload);
       }
     });
   }
