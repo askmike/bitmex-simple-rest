@@ -63,7 +63,9 @@ class BitmexRest {
     path = '/api/v1' + path;
 
     let payload = '';
-    if(method === 'GET') {
+    // NOTE: bitmex allows sending payload as query string for
+    // DELETE calls. This is not documented
+    if(method === 'GET' || method === 'DELETE') {
       path += '?' + querystring.stringify(data);
     } else if(data) {
       payload = JSON.stringify(data);
@@ -153,11 +155,7 @@ class BitmexRest {
         }
       });
 
-      if(draft.method === 'GET') {
-        req.end();
-      } else {
-        req.end(draft.payload);
-      }
+      req.end(draft.payload);
     });
   }
 
