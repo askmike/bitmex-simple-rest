@@ -1,6 +1,6 @@
 {
   "name": "bitmex-simple-rest",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "simple rest API wrapper for bitmex",
   "main": "index.js",
   "scripts": {
