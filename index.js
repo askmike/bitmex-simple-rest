@@ -71,7 +71,7 @@ class BitmexRest {
       payload = JSON.stringify(data);
     }
 
-    const start = +new Date;
+    const start = Date.now();
     const expires = Math.round((start + expiration) / 1000);
 
     const signature = crypto.createHmac('sha256', this.secret)
